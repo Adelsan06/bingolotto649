@@ -14,6 +14,15 @@ app.use(express.json());
 app.use(express.static("public"));
 
 const db = new sqlite3.Database("./bingo.db");
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ✅ THIS IS REQUIRED
+app.use(express.static(path.join(__dirname, "public")));
+
 
 // Create tables
 db.serialize(() => {
