@@ -42,6 +42,21 @@ app.post("/login", (req, res) => {
   );
 });
 
+app.post("/signup", (req, res) => {
+  const { email, password } = req.body;
+
+  db.run(
+    "INSERT INTO users (email, password) VALUES (?, ?)",
+    [email, password],
+    function (err) {
+      if (err) {
+        return res.json({ error: "User already exists" });
+      }
+      res.json({ id: this.lastID, email });
+    }
+  );
+});
+
 // Stripe checkout
 app.post("/checkout", async (req, res) => {
   const session = await stripe.checkout.sessions.create({
