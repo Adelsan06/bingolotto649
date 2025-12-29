@@ -3,6 +3,7 @@ import sqlite3 from "sqlite3";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import path from "path";
+import { fileURLToPath } from "url";
 
 dotenv.config();
 
@@ -10,67 +11,42 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-app.use(express.json());
-app.use(express.static("public"));
-
-const db = new sqlite3.Database("./bingo.db");
-import path from "path";
-import { fileURLToPath } from "url";
-
+// ✅ REQUIRED FOR ES MODULES
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ THIS IS REQUIRED
+// ✅ BODY PARSER
+app.use(express.json());
+
+// ✅ SERVE STATIC FILES (THIS WAS BROKEN)
 app.use(express.static(path.join(__dirname, "public")));
 
+// ✅ DATABASE
+const db = new sqlite3.Database("./bingo.db");
 
-// Create tables
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    email TEXT UNIQUE,
-    password TEXT
-  )`);
-
-  db.run(`CREATE TABLE IF NOT EXISTS picks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER,
-    numbers TEXT,
-    paid INTEGER DEFAULT 0
-  )`);
-});
-
-// Signup
-app.post("/signup", (req, res) => {
-  const { name, email, password } = req.body;
-  db.run(
-    "INSERT INTO users (name,email,password) VALUES (?,?,?)",
-    [name, email, password],
-    err => {
-      if (err) return res.json({ error: "Email exists" });
-      res.json({ success: true });
-    }
-  );
-});
+// ---------- ROUTES ----------
 
 // Login
 app.post("/login", (req, res) => {
   const { email, password } = req.body;
+
   db.get(
-    "SELECT * FROM users WHERE email=? AND password=?",
+    "SELECT id, email FROM users WHERE email=? AND password=?",
     [email, password],
     (err, row) => {
-      if (!row) return res.json({ error: "Invalid login" });
+      if (!row) {
+        return res.json({ error: "Invalid login" });
+      }
       res.json(row);
     }
   );
 });
 
-// Stripe Checkout
+// Stripe checkout
 app.post("/checkout", async (req, res) => {
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ["card"],
+    mode: "payment",
     line_items: [{
       price_data: {
         currency: "cad",
@@ -79,7 +55,6 @@ app.post("/checkout", async (req, res) => {
       },
       quantity: 1
     }],
-    mode: "payment",
     success_url: `${process.env.BASE_URL}/success.html`,
     cancel_url: `${process.env.BASE_URL}/cancel.html`
   });
@@ -87,4 +62,11 @@ app.post("/checkout", async (req, res) => {
   res.json({ url: session.url });
 });
 
-app.listen(PORT, () => console.log("Server running on port", PORT));
+// ✅ FALLBACK (OPTIONAL)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.listen(PORT, () =>
+  console.log("Server running on port", PORT)
+);
