@@ -1,3 +1,4 @@
+console.log("app.js loaded");
 async function login() {
   const res = await fetch("/login", {
     method: "POST",
@@ -7,7 +8,6 @@ async function login() {
       password: password.value
     })
   });
-console.log("app.js loaded");
 
   const data = await res.json();
   if (data.error) alert(data.error);
