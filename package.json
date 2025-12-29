@@ -1,0 +1,10 @@
+{
+  "name": "bingo-lotto",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.7",
+    "stripe": "^14.0.0",
+    "dotenv": "^16.4.5"
+  }
+}
